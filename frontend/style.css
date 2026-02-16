@@ -1,4 +1,3 @@
-/* Global */
 body {
   font-family: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   background: #f4f8fc;
@@ -6,7 +5,7 @@ body {
   color: #1f2933;
 }
 
-/* Top Bar */
+
 .topbar {
   background: #ffffff;
   padding: 16px 40px;
@@ -19,7 +18,7 @@ body {
   color: #2563eb;
 }
 
-/* Wizard Card */
+
 .wizard-card {
   max-width: 900px;
   margin: 40px auto;
@@ -29,7 +28,7 @@ body {
   box-shadow: 0 30px 60px rgba(0,0,0,0.08);
 }
 
-/* Steps */
+
 .steps {
   display: flex;
   align-items: center;
@@ -75,7 +74,7 @@ body {
   background: #e5e7eb;
 }
 
-/* Step Content */
+
 .step-content {
   display: none;
   text-align: center;
@@ -90,7 +89,7 @@ body {
   font-size: 1.6rem;
 }
 
-/* Upload Box */
+
 .upload-box {
   border: 2px dashed #c7d2fe;
   border-radius: 16px;
@@ -118,7 +117,7 @@ body {
   color: #6b7280;
 }
 
-/* Inputs */
+
 input[type="text"],
 textarea {
   width: 100%;
@@ -135,7 +134,7 @@ textarea:focus {
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
 }
 
-/* Buttons */
+
 button {
   margin-top: 25px;
   background: #2563eb;
@@ -163,14 +162,14 @@ button.secondary:hover {
   background: #d1d5db;
 }
 
-/* Nav Buttons */
+
 .nav-buttons {
   display: flex;
   justify-content: space-between;
   gap: 15px;
 }
 
-/* Results */
+
 .results-section {
   margin-top: 50px;
 }
@@ -183,9 +182,7 @@ button.secondary:hover {
   font-size: 13px;
   overflow-x: auto;
 }
-/* =========================
-   Autocomplete Suggestions
-========================= */
+
 
 .autocomplete-container {
   position: relative;
@@ -218,9 +215,7 @@ button.secondary:hover {
 .suggestion-item:hover {
   background: #f1f5f9;
 }
-/* =========================
-   Results Dashboard
-========================= */
+
 
 .result-cards {
   display: grid;
