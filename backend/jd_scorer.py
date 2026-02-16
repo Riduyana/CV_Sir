@@ -2,6 +2,7 @@ def compare_resume_with_jd(resume_skills, jd_skills):
     matched = []
     missing = []
 
+
     for skill in jd_skills:
         if skill in resume_skills:
             matched.append(skill)
