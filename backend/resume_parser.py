@@ -3,11 +3,11 @@ import pdfplumber
 import docx
 
 def extract_text(relative_path):
-    base_dir = os.path.dirname(__file__)  # backend folder
+    base_dir = os.path.dirname(__file__)  
     full_path = os.path.abspath(
         os.path.join(base_dir, relative_path)
     )
-
+    #--
     text = ""
 
     if full_path.endswith(".pdf"):

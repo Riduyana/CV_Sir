@@ -24,3 +24,4 @@ def generate_suggestions(found_skills, target_role, role_data, all_roles):
         )
 
     return suggestions
+#

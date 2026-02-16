@@ -13,3 +13,4 @@ def compare_resume_with_jd(resume_skills, jd_skills):
     ) if jd_skills else 0
 
     return match_percentage, matched, missing
+#

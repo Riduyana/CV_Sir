@@ -19,9 +19,9 @@ const JOB_ROLES = [
   "Mobile App Developer"
 ];
 
-// -----------------------------
+// ------------------------------
 // Stepper Logic
-// -----------------------------
+// ------------------------------
 function goToStep(stepNumber) {
   document.querySelectorAll(".step-content").forEach(el => {
     el.classList.remove("active");
