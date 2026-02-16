@@ -7,7 +7,7 @@ def extract_text(relative_path):
     full_path = os.path.abspath(
         os.path.join(base_dir, relative_path)
     )
-    #--
+ 
     text = ""
 
     if full_path.endswith(".pdf"):
@@ -19,5 +19,6 @@ def extract_text(relative_path):
         doc = docx.Document(full_path)
         for para in doc.paragraphs:
             text += para.text + "\n"
+
 
     return text

@@ -1,6 +1,4 @@
-// -----------------------------
-// Job Roles (Frontend Copy)
-// -----------------------------
+
 const JOB_ROLES = [
   "Data Analyst",
   "Data Engineer",
@@ -19,9 +17,7 @@ const JOB_ROLES = [
   "Mobile App Developer"
 ];
 
-// ------------------------------
-// Stepper Logic
-// ------------------------------
+
 function goToStep(stepNumber) {
   document.querySelectorAll(".step-content").forEach(el => {
     el.classList.remove("active");
@@ -37,9 +33,7 @@ function goToStep(stepNumber) {
   document.getElementById(`step${stepNumber}`).classList.add("active");
 }
 
-// -----------------------------
-// Autocomplete Logic
-// -----------------------------
+
 const roleInput = document.getElementById("targetRole");
 const suggestionsBox = document.getElementById("roleSuggestions");
 
@@ -83,9 +77,7 @@ document.addEventListener("click", (e) => {
   }
 });
 
-// -----------------------------
-// Analyze (API Call)
-// -----------------------------
+
 async function analyze(event) {
   if (event) {
     event.preventDefault();
@@ -106,7 +98,7 @@ async function analyze(event) {
     return;
   }
 
-  // Loading UI
+
   document.getElementById("resTargetRole").textContent = targetRole;
   document.getElementById("resRoleMatch").textContent = "Analyzing...";
   document.getElementById("resJdMatch").textContent = jdText ? "Analyzing..." : "N/A";
@@ -148,15 +140,13 @@ async function analyze(event) {
   }
 }
 
-// -----------------------------
-// Results Rendering + Chart
-// -----------------------------
+
 let roleChart = null;
 
 function renderResults(data) {
   const roleMatches = data.role_matches || {};
 
-  // -------- Summary --------
+ 
   document.getElementById("resTargetRole").textContent =
     data.target_role || "-";
 
@@ -170,7 +160,7 @@ function renderResults(data) {
       ? data.jd_match_percentage + "%"
       : "N/A";
 
-  // -------- Target Role Lists --------
+  
   renderList(
     "roleMissingSkillsList",
     data.role_missing_skills || [],
@@ -183,7 +173,7 @@ function renderResults(data) {
     "No extra skills to remove 🎉"
   );
 
-  // -------- Job Description Lists --------
+
   renderList(
     "jdMissingSkillsList",
     data.jd_missing_skills || [],
@@ -196,7 +186,7 @@ function renderResults(data) {
     "No extra JD skills 🎉"
   );
 
-  // -------- Role Match Chart --------
+
   const labels = Object.keys(roleMatches);
   const values = Object.values(roleMatches);
 
@@ -225,9 +215,7 @@ function renderResults(data) {
   });
 }
 
-// -----------------------------
-// Helper
-// -----------------------------
+
 function renderList(elementId, items, emptyText) {
   const ul = document.getElementById(elementId);
   if (!ul) return;
