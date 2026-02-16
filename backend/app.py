@@ -12,9 +12,7 @@ from scorer import calculate_score
 
 app = FastAPI()
 
-# -----------------------------
-# CORS
-# -----------------------------
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -23,15 +21,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# -----------------------------
-# Upload Directory
-# -----------------------------
+
 UPLOAD_RESUME_DIR = "../uploads/resumes"
 os.makedirs(UPLOAD_RESUME_DIR, exist_ok=True)
 
-# -----------------------------
-# Analyze Endpoint
-# -----------------------------
+
 @app.post("/analyze")
 async def analyze_resume(
     resume: UploadFile = File(...),
@@ -39,12 +33,12 @@ async def analyze_resume(
     target_role: str = Form(...)
 ):
     try:
-        # -------- Save Resume --------
+
         resume_path = os.path.join(UPLOAD_RESUME_DIR, resume.filename)
         with open(resume_path, "wb") as buffer:
             shutil.copyfileobj(resume.file, buffer)
 
-        # -------- Extract Resume Skills --------
+
         resume_text = extract_text(resume_path)
         resume_skills = list(set(extract_skills(resume_text)))
 
@@ -53,9 +47,7 @@ async def analyze_resume(
             "resume_skills": resume_skills
         }
 
-        # =============================
-        # TARGET ROLE ANALYSIS (ALWAYS)
-        # =============================
+
         role_required_skills = list(set(
             JOB_ROLES.get(target_role, {}).get("skills", [])
         ))
@@ -72,9 +64,7 @@ async def analyze_resume(
             "role_extra_skills": role_extra_skills
         })
 
-        # =============================
-        # JOB DESCRIPTION ANALYSIS (OPTIONAL)
-        # =============================
+
         if job_description_text and job_description_text.strip():
             jd_skills = list(set(extract_skills(job_description_text)))
 
@@ -91,16 +81,14 @@ async def analyze_resume(
                 "jd_extra_skills": jd_extra_skills
             })
         else:
-            # If no JD provided, be explicit
+            
             response.update({
                 "jd_match_percentage": None,
                 "jd_missing_skills": [],
                 "jd_extra_skills": []
             })
 
-        # =============================
-        # ROLE MATCH BREAKDOWN (CHART)
-        # =============================
+
         role_results = {}
         for role, data in JOB_ROLES.items():
             score = calculate_score(resume_skills, data["skills"])
