@@ -22,7 +22,8 @@ app.add_middleware(
 )
 
 
-UPLOAD_RESUME_DIR = "../uploads/resumes"
+UPLOAD_RESUME_DIR = "uploads/resumes"
+
 os.makedirs(UPLOAD_RESUME_DIR, exist_ok=True)
 
 
