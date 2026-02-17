@@ -114,7 +114,7 @@ async function analyze(event) {
   let data;
 
   try {
-    const response = await fetch("http://127.0.0.1:8000/analyze", {
+    const response = await fetch("https://cv-sir-api.onrender.com/analyze", {
       method: "POST",
       body: formData
     });
