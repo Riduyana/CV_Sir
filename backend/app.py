@@ -1,6 +1,7 @@
 from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 import shutil
 import os
 
@@ -9,37 +10,53 @@ from skill_extractor import extract_skills
 from jd_scorer import compare_resume_with_jd
 from roles import JOB_ROLES
 from scorer import calculate_score
+from career_scorer import calculate_career_readiness, classify_job_level
+from job_recommender import get_job_queries, build_external_links
+
 
 app = FastAPI()
 
-
+# -----------------------------
+# CORS (Required for GitHub Pages → Render communication)
+# -----------------------------
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],  # Can restrict later to your GitHub domain
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-
+# -----------------------------
+# Upload Directory
+# -----------------------------
 UPLOAD_RESUME_DIR = "uploads/resumes"
-
 os.makedirs(UPLOAD_RESUME_DIR, exist_ok=True)
 
 
+# ==========================================================
+# ANALYZE ENDPOINT
+# ==========================================================
 @app.post("/analyze")
 async def analyze_resume(
     resume: UploadFile = File(...),
     job_description_text: str = Form(None),
-    target_role: str = Form(...)
+    target_role: str = Form(...),
+    experience_years: float = Form(0),
+    projects: int = Form(0)
 ):
     try:
 
+        # -------------------------
+        # Save Resume
+        # -------------------------
         resume_path = os.path.join(UPLOAD_RESUME_DIR, resume.filename)
         with open(resume_path, "wb") as buffer:
             shutil.copyfileobj(resume.file, buffer)
 
-
+        # -------------------------
+        # Extract Resume Skills
+        # -------------------------
         resume_text = extract_text(resume_path)
         resume_skills = list(set(extract_skills(resume_text)))
 
@@ -48,7 +65,9 @@ async def analyze_resume(
             "resume_skills": resume_skills
         }
 
-
+        # ==================================================
+        # TARGET ROLE ANALYSIS
+        # ==================================================
         role_required_skills = list(set(
             JOB_ROLES.get(target_role, {}).get("skills", [])
         ))
@@ -65,7 +84,9 @@ async def analyze_resume(
             "role_extra_skills": role_extra_skills
         })
 
-
+        # ==================================================
+        # JOB DESCRIPTION ANALYSIS (OPTIONAL)
+        # ==================================================
         if job_description_text and job_description_text.strip():
             jd_skills = list(set(extract_skills(job_description_text)))
 
@@ -82,14 +103,15 @@ async def analyze_resume(
                 "jd_extra_skills": jd_extra_skills
             })
         else:
-            
             response.update({
                 "jd_match_percentage": None,
                 "jd_missing_skills": [],
                 "jd_extra_skills": []
             })
 
-
+        # ==================================================
+        # ROLE MATCH BREAKDOWN (All Roles)
+        # ==================================================
         role_results = {}
         for role, data in JOB_ROLES.items():
             score = calculate_score(resume_skills, data["skills"])
@@ -100,12 +122,73 @@ async def analyze_resume(
             sorted(role_results.items(), key=lambda x: x[1], reverse=True)
         )
 
-        print("FINAL RESPONSE:", response)
+        # ==================================================
+        # CAREER READINESS ENGINE (Phase 1)
+        # ==================================================
+        career_profile = {}
+
+        for role, data in JOB_ROLES.items():
+            overall_score, breakdown = calculate_career_readiness(
+                resume_skills,
+                experience_years,
+                projects,
+                data,
+            )
+
+            career_profile[role] = {
+                "score": float(overall_score),
+                "level": classify_job_level(overall_score),
+                "breakdown": breakdown
+            }
+
+        response["career_profile"] = career_profile
+
         return JSONResponse(content=response)
 
     except Exception as e:
-        print("BACKEND ERROR:", e)
         return JSONResponse(
             status_code=500,
-            content={"error": "Backend processing failed", "message": str(e)}
+            content={
+                "error": "Backend processing failed",
+                "message": str(e)
+            }
+        )
+
+
+# ==========================================================
+# JOB RECOMMENDATION ENDPOINT (Phase 2)
+# ==========================================================
+
+class JobRecommendationRequest(BaseModel):
+    role: str
+    level: str
+
+
+@app.post("/job-recommendations")
+async def job_recommendations(payload: JobRecommendationRequest):
+    try:
+        role = payload.role
+        level = payload.level
+
+        if not role or not level:
+            return JSONResponse(
+                status_code=400,
+                content={"error": "role and level are required"}
+            )
+
+        job_queries = get_job_queries(role, level)
+        external_links = build_external_links(role, level)
+
+        return JSONResponse(content={
+            "job_queries": job_queries,
+            "external_links": external_links
+        })
+
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={
+                "error": "Job recommendation failed",
+                "message": str(e)
+            }
         )
