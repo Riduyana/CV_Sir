@@ -1,99 +1,44 @@
-DATA_ANALYST_SKILLS = [
-    "sql",
-    "python",
-    "r",
-
-    "pandas",
-    "numpy",
-
-    "statistics",
-    "probability",
-    "hypothesis testing",
-    "regression",
-    "a/b testing",
-
-    "excel",
-    "power bi",
-    "tableau",
-    "matplotlib",
-    "seaborn",
-
-    "data cleaning",
-    "data wrangling",
-    "data preprocessing",
-
-    "business analysis",
-    "kpi",
-    "dashboard",
-    "reporting",
-
-    "mysql",
-    "postgresql"
-]
+import re
+from roles import JOB_ROLES
 
 
-UIUX_SKILLS = [
+# -----------------------------------
+# Build Master Skill List Dynamically
+# -----------------------------------
 
-    "figma",
-    "adobe xd",
-    "sketch",
-    "invision",
-    "zeplin",
+def _build_master_skill_list():
+    skills = set()
 
-    "user research",
-    "user interviews",
-    "usability testing",
-    "persona creation",
-    "user journey",
-    "information architecture",
+    for role_data in JOB_ROLES.values():
+        core = role_data.get("core_skills", [])
+        secondary = role_data.get("secondary_skills", [])
 
-    "ui design",
-    "visual design",
-    "layout design",
-    "color theory",
-    "typography",
+        skills.update(core)
+        skills.update(secondary)
 
-    "wireframing",
-    "low fidelity wireframes",
-    "high fidelity wireframes",
-    "prototyping",
-    "interactive prototypes",
-
-    "ux design",
-    "design thinking",
-    "human centered design",
-    "accessibility",
-    "wcag",
-
-    "design system",
-    "component library",
-    "style guide",
-
-    "developer handoff",
-    "design documentation",
-    "agile",
-    "scrum",
-
-    "html",
-    "css",
-    "responsive design",
-
-    "hotjar",
-    "maze",
-    "user testing",
-
-    "case study",
-    "portfolio",
-    "storytelling"
-]
+    return list(skills)
 
 
-def extract_skills(text):
+ALL_SKILLS = _build_master_skill_list()
+
+
+# -----------------------------------
+# Skill Extraction Engine
+# -----------------------------------
+
+def extract_skills(text: str):
+    """
+    Extract known skills using word-boundary regex.
+    """
+
     text = text.lower()
-    found_skills = []
+    found_skills = set()
 
-    for skill in DATA_ANALYST_SKILLS + UIUX_SKILLS:
-        if skill in text:
-            found_skills.append(skill)
+    for skill in ALL_SKILLS:
+        escaped_skill = re.escape(skill.lower())
+        pattern = r"\b" + escaped_skill + r"\b"
 
-    return list(set(found_skills))
+        if re.search(pattern, text):
+            found_skills.add(skill)
+
+    return list(found_skills)
