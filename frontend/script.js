@@ -1,313 +1,349 @@
-// -----------------------------
-// Job Roles (Frontend Copy)
-// -----------------------------
-const JOB_ROLES = [
-  "Data Analyst",
-  "Data Engineer",
-  "Business Analyst",
-  "Machine Learning Engineer",
-  "AI Engineer",
-  "Backend Developer",
-  "Frontend Developer",
-  "Full Stack Developer",
-  "DevOps Engineer",
-  "Cloud Engineer",
-  "Cyber Security Analyst",
-  "UI/UX Designer",
-  "Product Manager",
-  "QA Engineer",
-  "Mobile App Developer"
-];
+// ===============================
+// CONFIG
+// ===============================
 
-// -----------------------------
-// Stepper Logic
-// -----------------------------
-function goToStep(stepNumber) {
-  document.querySelectorAll(".step-content").forEach(el => {
-    el.classList.remove("active");
-  });
+const BASE_API_URL = "http://127.0.0.1:8000";
+// when deployed change to:
+// const BASE_API_URL = "https://cv-sir.onrender.com";
 
-  document.querySelectorAll(".step").forEach((el, index) => {
-    el.classList.remove("active");
-    if (index < stepNumber) {
-      el.classList.add("active");
-    }
-  });
-
-  document.getElementById(`step${stepNumber}`).classList.add("active");
-}
-
-// -----------------------------
-// Autocomplete Logic
-// -----------------------------
-const roleInput = document.getElementById("targetRole");
-const suggestionsBox = document.getElementById("roleSuggestions");
-
-roleInput.addEventListener("input", () => {
-  const query = roleInput.value.toLowerCase().trim();
-  suggestionsBox.innerHTML = "";
-
-  if (!query) {
-    suggestionsBox.style.display = "none";
-    return;
-  }
-
-  const matches = JOB_ROLES.filter(role =>
-    role.toLowerCase().includes(query)
-  );
-
-  if (matches.length === 0) {
-    suggestionsBox.style.display = "none";
-    return;
-  }
-
-  matches.forEach(role => {
-    const div = document.createElement("div");
-    div.className = "suggestion-item";
-    div.textContent = role;
-
-    div.onclick = () => {
-      roleInput.value = role;
-      suggestionsBox.style.display = "none";
-    };
-
-    suggestionsBox.appendChild(div);
-  });
-
-  suggestionsBox.style.display = "block";
-});
-
-document.addEventListener("click", (e) => {
-  if (!e.target.closest(".autocomplete-container")) {
-    suggestionsBox.style.display = "none";
-  }
-});
-
-// -----------------------------
-// Analyze (API Call)
-// -----------------------------
-async function analyze(event) {
-  if (event) {
-    event.preventDefault();
-    event.stopPropagation();
-  }
-
-  const resumeFile = document.getElementById("resumeFile").files[0];
-  const jdText = document.getElementById("jdText").value;
-  const targetRole = document.getElementById("targetRole").value;
-
-  if (!resumeFile) {
-    alert("Please upload your resume!");
-    return;
-  }
-
-  if (!targetRole) {
-    alert("Please enter a job title!");
-    return;
-  }
-
-  // Loading UI
-  document.getElementById("resTargetRole").textContent = targetRole;
-  document.getElementById("resRoleMatch").textContent = "Analyzing...";
-  document.getElementById("resJdMatch").textContent = jdText ? "Analyzing..." : "N/A";
-
-  const formData = new FormData();
-  formData.append("resume", resumeFile);
-  formData.append("target_role", targetRole);
-
-  if (jdText) {
-    formData.append("job_description_text", jdText);
-  }
-
-  let data;
-
-  try {
-    const response = await fetch("http://127.0.0.1:8000/analyze", {
-      method: "POST",
-      body: formData
-    });
-
-    const rawText = await response.text();
-    console.log("RAW BACKEND RESPONSE:", rawText);
-
-    data = JSON.parse(rawText);
-
-  } catch (err) {
-    console.error("FETCH / PARSE ERROR:", err);
-    alert("Failed to fetch or parse backend response. Check console.");
-    return;
-  }
-
-  try {
-    await renderResults(data);
-    document.querySelector(".results-section")
-      .scrollIntoView({ behavior: "smooth" });
-  } catch (err) {
-    console.error("RENDER ERROR:", err);
-    alert("Render error. Check console.");
-  }
-}
-
-// -----------------------------
-// Results Rendering + Chart
-// -----------------------------
 let roleChart = null;
 
-async function renderResults(data) {
-  const roleMatches = data.role_matches || {};
 
-  // -------- Summary --------
-  document.getElementById("resTargetRole").textContent =
-    data.target_role || "-";
+// ===============================
+// JOB ROLES FOR AUTOCOMPLETE
+// ===============================
 
-  document.getElementById("resRoleMatch").textContent =
-    data.role_match_percentage !== undefined
-      ? data.role_match_percentage + "%"
-      : "N/A";
+const JOB_ROLES = [
+"Data Analyst",
+"Data Engineer",
+"Business Analyst",
+"Machine Learning Engineer",
+"AI Engineer",
+"Backend Developer",
+"Frontend Developer",
+"Full Stack Developer",
+"DevOps Engineer",
+"Cloud Engineer",
+"Cyber Security Analyst",
+"UI/UX Designer",
+"Product Manager",
+"QA Engineer",
+"Mobile App Developer"
+];
 
-  document.getElementById("resJdMatch").textContent =
-    data.jd_match_percentage !== null && data.jd_match_percentage !== undefined
-      ? data.jd_match_percentage + "%"
-      : "N/A";
 
-  // -------- Target Role Lists --------
-  renderList(
-    "roleMissingSkillsList",
-    data.role_missing_skills || [],
-    "No missing skills for target role 🎉"
-  );
+// ===============================
+// STEP NAVIGATION
+// ===============================
 
-  renderList(
-    "roleExtraSkillsList",
-    data.role_extra_skills || [],
-    "No extra skills to remove 🎉"
-  );
+function goToStep(stepNumber){
 
-  // -------- Job Description Lists --------
-  renderList(
-    "jdMissingSkillsList",
-    data.jd_missing_skills || [],
-    "No missing JD skills 🎉"
-  );
+document.querySelectorAll(".step-content").forEach(el=>{
+el.classList.remove("active");
+});
 
-  renderList(
-    "jdExtraSkillsList",
-    data.jd_extra_skills || [],
-    "No extra JD skills 🎉"
-  );
+document.getElementById(`step${stepNumber}`).classList.add("active");
 
-  await renderRecommendedJobs(data);
+const steps=document.querySelectorAll(".step");
 
-  // -------- Role Match Chart --------
-  const labels = Object.keys(roleMatches);
-  const values = Object.values(roleMatches);
+steps.forEach((step,index)=>{
+step.classList.remove("active");
 
-  const canvas = document.getElementById("roleChart");
-  const ctx = canvas.getContext("2d");
-
-  if (roleChart) roleChart.destroy();
-
-  roleChart = new Chart(ctx, {
-    type: "bar",
-    data: {
-      labels,
-      datasets: [{
-        label: "Role Match %",
-        data: values,
-        borderRadius: 8
-      }]
-    },
-    options: {
-      responsive: true,
-      plugins: { legend: { display: false } },
-      scales: {
-        y: { beginAtZero: true, max: 100 }
-      }
-    }
-  });
+if(index<stepNumber){
+step.classList.add("active");
 }
 
-// -----------------------------
-// Helper
-// -----------------------------
-function renderList(elementId, items, emptyText) {
-  const ul = document.getElementById(elementId);
-  if (!ul) return;
+});
 
-  ul.innerHTML = "";
-
-  if (!items || items.length === 0) {
-    const li = document.createElement("li");
-    li.textContent = emptyText;
-    ul.appendChild(li);
-    return;
-  }
-
-  items.forEach(item => {
-    const li = document.createElement("li");
-    li.textContent = item;
-    ul.appendChild(li);
-  });
 }
 
 
-async function renderRecommendedJobs(data) {
-  const container = document.getElementById("recommendedJobs");
-  if (!container) return;
+// ===============================
+// AUTOCOMPLETE DROPDOWN
+// ===============================
 
-  container.innerHTML = "";
+const roleInput=document.getElementById("targetRole");
+const suggestionsBox=document.getElementById("roleSuggestions");
 
-  const careerProfile = data.career_profile || {};
-  const rankedRoles = Object.entries(careerProfile)
-    .sort((a, b) => (b[1]?.score || 0) - (a[1]?.score || 0))
-    .slice(0, 3);
+if(roleInput){
 
-  if (rankedRoles.length === 0) {
-    container.textContent = "No recommendations yet. Analyze a resume first.";
-    return;
-  }
+roleInput.addEventListener("input",()=>{
 
-  for (const [role, profile] of rankedRoles) {
-    const level = profile?.level || "Internship";
-    const score = profile?.score ?? 0;
+const query=roleInput.value.toLowerCase().trim();
 
-    const card = document.createElement("div");
-    card.className = "job-card";
+suggestionsBox.innerHTML="";
 
-    const title = document.createElement("h4");
-    title.textContent = role;
+if(!query){
+suggestionsBox.style.display="none";
+return;
+}
 
-    const meta = document.createElement("div");
-    meta.className = "job-meta";
-    meta.innerHTML = `
-      <span><strong>Level:</strong> ${level}</span>
-      <span><strong>Career readiness:</strong> ${score}%</span>
-    `;
+const matches=JOB_ROLES.filter(role=>
+role.toLowerCase().includes(query)
+);
 
-    const links = document.createElement("div");
-    links.className = "job-links";
+if(matches.length===0){
+suggestionsBox.style.display="none";
+return;
+}
 
-    try {
-      const response = await fetch("http://127.0.0.1:8000/job-recommendations", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role, level })
-      });
+matches.forEach(role=>{
 
-      const recommendation = await response.json();
-      const externalLinks = recommendation.external_links || {};
+const div=document.createElement("div");
+div.className="suggestion-item";
+div.textContent=role;
 
-      links.innerHTML = `
-        <a href="${externalLinks.linkedin || "#"}" target="_blank" rel="noopener noreferrer">LinkedIn Jobs</a>
-        <a href="${externalLinks.indeed || "#"}" target="_blank" rel="noopener noreferrer">Indeed Jobs</a>
-      `;
-    } catch (error) {
-      links.textContent = "Job links unavailable right now.";
-    }
+div.onclick=()=>{
+roleInput.value=role;
+suggestionsBox.style.display="none";
+};
 
-    card.appendChild(title);
-    card.appendChild(meta);
-    card.appendChild(links);
-    container.appendChild(card);
-  }
+suggestionsBox.appendChild(div);
+
+});
+
+suggestionsBox.style.display="block";
+
+});
+
+}
+
+
+// close dropdown if click outside
+
+document.addEventListener("click",(e)=>{
+if(!e.target.closest(".autocomplete-container")){
+suggestionsBox.style.display="none";
+}
+});
+
+
+
+// ===============================
+// ANALYZE RESUME
+// ===============================
+
+async function analyze(event){
+
+if(event) event.preventDefault();
+
+const resumeFile=document.getElementById("resumeFile").files[0];
+const targetRole=document.getElementById("targetRole").value;
+const jdText=document.getElementById("jdText").value;
+const experienceYears=document.getElementById("experienceYears")?.value || 0;
+const projects=document.getElementById("projectsCount")?.value || 0;
+
+if(!resumeFile){
+alert("Please upload your resume");
+return;
+}
+
+if(!targetRole){
+alert("Please enter a job title");
+return;
+}
+
+const formData=new FormData();
+
+formData.append("resume",resumeFile);
+formData.append("target_role",targetRole);
+formData.append("experience_years",experienceYears);
+formData.append("projects",projects);
+
+if(jdText){
+formData.append("job_description_text",jdText);
+}
+
+try{
+
+const response=await fetch(`${BASE_API_URL}/analyze`,{
+method:"POST",
+body:formData
+});
+
+const data=await response.json();
+
+renderResults(data);
+
+}catch(err){
+
+console.error("Analyze error:",err);
+alert("Backend error");
+
+}
+
+}
+
+
+
+// ===============================
+// RENDER RESULTS
+// ===============================
+
+function renderResults(data){
+
+document.getElementById("resTargetRole").textContent=data.target_role || "-";
+
+document.getElementById("resRoleMatch").textContent=
+data.role_match_percentage + "%";
+
+document.getElementById("resJdMatch").textContent=
+data.jd_match_percentage!==null
+? data.jd_match_percentage+"%"
+: "N/A";
+
+
+renderList("roleMissingSkillsList",data.role_missing_skills);
+renderList("roleExtraSkillsList",data.role_extra_skills);
+renderList("jdMissingSkillsList",data.jd_missing_skills);
+
+
+renderChart(data.role_matches || {});
+
+renderRecommendedJobs(data);
+
+}
+
+
+
+// ===============================
+// SKILL LIST RENDER
+// ===============================
+
+function renderList(id,items=[]){
+
+const ul=document.getElementById(id);
+
+if(!ul) return;
+
+ul.innerHTML="";
+
+if(!items || items.length===0){
+
+ul.innerHTML="<li>No items 🎉</li>";
+return;
+
+}
+
+items.forEach(skill=>{
+
+const li=document.createElement("li");
+li.textContent=skill;
+
+ul.appendChild(li);
+
+});
+
+}
+
+
+
+// ===============================
+// ROLE MATCH CHART
+// ===============================
+
+function renderChart(roleMatches){
+
+const labels=Object.keys(roleMatches);
+const values=Object.values(roleMatches);
+
+const canvas=document.getElementById("roleChart");
+
+if(!canvas) return;
+
+const ctx=canvas.getContext("2d");
+
+if(roleChart) roleChart.destroy();
+
+roleChart=new Chart(ctx,{
+type:"bar",
+data:{
+labels,
+datasets:[{
+label:"Role Match %",
+data:values,
+backgroundColor:"#2563eb",
+borderRadius:8
+}]
+},
+options:{
+responsive:true,
+plugins:{
+legend:{display:false}
+},
+scales:{
+y:{
+beginAtZero:true,
+max:100
+}
+}
+}
+});
+
+}
+
+
+
+// ===============================
+// JOB RECOMMENDATIONS
+// ===============================
+
+async function renderRecommendedJobs(data){
+
+const container=document.getElementById("recommendedJobs");
+
+container.innerHTML="";
+
+const rankedRoles=Object.entries(data.career_profile || {})
+.sort((a,b)=>b[1].score - a[1].score)
+.slice(0,3);
+
+for(const [role,profile] of rankedRoles){
+
+const formData=new FormData();
+
+formData.append("role",role);
+formData.append("level",profile.level);
+
+try{
+
+const response=await fetch(
+`${BASE_API_URL}/job-recommendations`,
+{
+method:"POST",
+body:formData
+}
+);
+
+const result=await response.json();
+
+const card=document.createElement("div");
+card.className="job-card";
+
+card.innerHTML=`
+
+<h4>${role}</h4>
+
+<div class="job-meta">
+<span><strong>Level:</strong> ${profile.level}</span>
+<span><strong>Readiness:</strong> ${profile.score}%</span>
+</div>
+
+<div class="job-links">
+<a href="${result.external_links.linkedin}" target="_blank">LinkedIn Jobs</a>
+<a href="${result.external_links.indeed}" target="_blank">Indeed Jobs</a>
+</div>
+
+`;
+
+container.appendChild(card);
+
+}catch(err){
+
+console.error("Recommendation error:",err);
+
+}
+
+}
+
 }
